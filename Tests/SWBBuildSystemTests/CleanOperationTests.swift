@@ -151,6 +151,23 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
         }
     }
 
+    /// DSTROOT should not be cleaned when DEPLOYMENT_LOCATION is off,
+    /// even if the directory exists on disk from another source.
+    @Test(.requireSDKs(.macOS))
+    func cleanSkipsDstrootWithoutDeploymentLocation() async throws {
+        try await withTestHarness { tester, tmpDirPath, dstRoot in
+            // Simulate an externally created DSTROOT directory
+            try tester.fs.createDirectory(dstRoot, recursive: true)
+            #expect(tester.fs.exists(dstRoot))
+
+            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), persistent: true) { results in
+                results.checkNoDiagnostics()
+            }
+
+            #expect(tester.fs.exists(dstRoot))
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func cleanFrameworkInstall() async throws {
         try await withTestHarness(install: true) { tester, tmpDirPath, dstRoot in
@@ -305,7 +322,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func cleanBuildFolderContainingProject() async throws {
-        try await withTestHarness(useRootDstroot: true) { tester, tmpDirPath, _ in
+        try await withTestHarness(install: true, useRootDstroot: true) { tester, tmpDirPath, _ in
             let buildFolderPaths = [tmpDirPath]
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in }
