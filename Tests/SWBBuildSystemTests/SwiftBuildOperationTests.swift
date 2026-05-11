@@ -20,6 +20,54 @@ import SWBTaskExecution
 
 @Suite
 fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
+    @Test(.requireSDKs(.host))
+    func caseInsensitiveObjectLibraryCollision() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("objlib.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Objlib",
+                        type: .objectLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug"),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["objlib.swift"]),
+                        ]
+                    ),
+                ])
+            let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("objlib.swift")) { stream in
+                stream <<< "func foo() {}"
+            }
+
+            try await tester.checkBuild(runDestination: .host) { results in
+                // The source and modulewrap objects should not collide when assembling the object library.
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     /// Test that building a project with module-only architectures and generated Objective-C headers still generates the headers for the module-only architectures.
     @Test(.requireSDKs(.watchOS))
     func swiftModuleOnlyArchsWithGeneratedObjectiveCHeaders() async throws {
