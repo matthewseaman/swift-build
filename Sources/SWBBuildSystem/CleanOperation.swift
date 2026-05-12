@@ -392,7 +392,14 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
 
 extension WorkspaceContext {
     func buildDirectories(settings: Settings) -> [Path] {
-        buildDirectoryMacros.map { settings.globalScope.evaluate($0) }
+        buildDirectoryMacros.compactMap { macro in
+            // Skip DSTROOT when DEPLOYMENT_LOCATION is off, matching
+            // CreateBuildDirectoryTaskProducer.prepare().
+            if macro == BuiltinMacros.DSTROOT && !settings.globalScope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
+                return nil
+            }
+            return settings.globalScope.evaluate(macro)
+        }
     }
 
     func cacheDirectories(settings: Settings) -> [Path] {
