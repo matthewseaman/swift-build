@@ -121,7 +121,7 @@ private struct BuildTargetInfoHandler: MessageHandler {
             throw StubError.error("service object is not of type BuildService")
         }
         let info = try await buildService.sharedCore(developerPath: message.developerPath).buildTargetInfo(triple: message.triple)
-        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
+        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, buildProductsDirectorySuffix: info.buildProductsDirectorySuffix, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
     }
 }
 
@@ -129,7 +129,7 @@ private struct SessionBuildTargetInfoHandler: MessageHandler {
     func handle(request: Request, message: SessionBuildTargetInfoRequest) async throws -> BuildTargetInfoResponse {
         let session = try request.session(for: message)
         let info = try session.core.buildTargetInfo(triple: message.triple)
-        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
+        return BuildTargetInfoResponse(sdkName: info.sdkName, platformName: info.platformName, buildProductsDirectorySuffix: info.buildProductsDirectorySuffix, sdkVariant: info.sdkVariant, deploymentTargetSettingName: info.deploymentTargetSettingName, deploymentTarget: info.deploymentTarget)
     }
 }
 

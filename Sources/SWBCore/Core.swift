@@ -627,7 +627,17 @@ public final class Core: Sendable {
         }
     }
 
-    public func buildTargetInfo(triple: String) throws -> (sdkName: String, platformName: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
+    package static func effectivePlatformName(platformName: String, archComponent: String) -> String {
+        // `archComponent` is currently unused, but will be used to disambiguate build directories for platforms that
+        // don't support universal binaries once this API is adopted.
+        if platformName == "macosx" {
+            return ""
+        } else {
+            return "-\(platformName)"
+        }
+    }
+
+    public func buildTargetInfo(triple: String) throws -> (sdkName: String, platformName: String, buildProductsDirectorySuffix: String, sdkVariant: String?, deploymentTargetSettingName: String?, deploymentTarget: String?) {
         let llvmTriple = try LLVMTriple(triple)
 
         let platformExtensions = pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
@@ -636,6 +646,8 @@ public final class Core: Sendable {
         guard let platformName = platformNames.only else {
             throw StubError.error("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)")
         }
+
+        let buildProductsDirectorySuffix = Self.effectivePlatformName(platformName: platformName, archComponent: llvmTriple.arch)
 
         let sdkVariants = Set(platformExtensions.compactMap({ $0.sdkVariant(triple: llvmTriple) }))
         if sdkVariants.count > 1 {
@@ -649,7 +661,7 @@ public final class Core: Sendable {
 
         let deploymentTarget: String? = try llvmTriple.version.map { "\($0)" }
 
-        return (sdkName: platformName, platformName: platformName, sdkVariant: sdkVariants.only, deploymentTargetSettingName: deploymentTargetSettingNames.only, deploymentTarget: deploymentTarget)
+        return (sdkName: platformName, platformName: platformName, buildProductsDirectorySuffix: buildProductsDirectorySuffix, sdkVariant: sdkVariants.only, deploymentTargetSettingName: deploymentTargetSettingNames.only, deploymentTarget: deploymentTarget)
     }
 }
 
