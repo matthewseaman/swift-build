@@ -207,6 +207,13 @@ extension Trait where Self == Testing.ConditionTrait {
         }
     }
 
+    package static func skipIfHasSwiftFeature(_ requiredFeature: DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag) -> Self {
+        enabled("Swift compiler supports feature: \(requiredFeature)") {
+            let features = try await ConditionTraitContext.shared.swiftFeatures
+            return !features.has(requiredFeature)
+        }
+    }
+
     package static func requireSDKImports() -> Self {
         enabled("Linker does not support SDK imports") {
             return try await ConditionTraitContext.shared.supportsSDKImports
